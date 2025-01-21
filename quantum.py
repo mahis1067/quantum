@@ -16,51 +16,60 @@ def is_prime(n):
             return False
     return True
 
-# Function to find the smallest r such that a^r ≡ 1 (mod n)
-def find_order(a, n):
-    for r in range(1, n):
-        if pow(a, r, n) == 1:
-            return r
-    return None
+# Function to find factors using g^(r/2) ± 1 method
+def factor_with_r(a, n, max_r=100):
+    r = 2  # Start with the smallest even value for r
+    while r <= max_r:
+        # Compute g^(r/2) modulo n
+        g_r_half = pow(a, r // 2, n)
 
-# Modified Shor's algorithm using the g^(r/2) ± 1 = mN formula
-def shors_algorithm(n):
-    # Ensure n is not a prime number or a power of a prime
-    if is_prime(n) or math.log(n, 2).is_integer():
-        return f"{n} is either prime or a power of a prime. Cannot factorize."
-
-    # Retry with different random values of 'a'
-    for _ in range(10):  # Limit to 10 attempts
-        a = random.randint(2, n - 1)
-        print(f"Randomly chosen 'a': {a}")
-
-        # Step 2: Compute the GCD of 'a' and 'n'
-        g = gcd(a, n)
-        if g > 1:
-            return f"Found a factor using GCD: {g} and {n // g}"
-
-        # Step 3: Find the order 'r' of 'a' modulo 'n'
-        r = find_order(a, n)
-        if r is None or r % 2 != 0:
-            continue  # Skip if 'r' is invalid or not even
-
-        print(f"Order 'r' of {a} modulo {n}: {r}")
-
-        # Step 4: Calculate g^(r/2) ± 1
-        g_r_half = pow(a, r // 2)
+        # Calculate g^(r/2) ± 1
         factor1 = gcd(g_r_half - 1, n)
         factor2 = gcd(g_r_half + 1, n)
 
-        # Step 5: Check if factors are non-trivial and prime
-        if factor1 > 1 and factor1 < n and is_prime(factor1):
-            return f"Prime factors of {n} are: {factor1} and {n // factor1}"
-        elif factor2 > 1 and factor2 < n and is_prime(factor2):
-            return f"Prime factors of {n} are: {factor2} and {n // factor2}"
+        # Check if factor1 or factor2 is a valid factor
+        if 1 < factor1 < n and n % factor1 == 0:
+            if is_prime(factor1) and is_prime(n // factor1):  # Ensure both factors are prime
+                return factor1, n // factor1
+        if 1 < factor2 < n and n % factor2 == 0:
+            if is_prime(factor2) and is_prime(n // factor2):  # Ensure both factors are prime
+                return factor2, n // factor2
 
-    return "Pair of prime factors not found."
+        # Increment r to the next even number
+        r += 2
 
-# Test the program
-if __name__ == "__main__":
-    number = int(input("Enter a number to factorize: "))
-    result = shors_algorithm(number)
-    print(result)
+    return None  # No factors found
+
+# Modified Shor's algorithm
+def shors_algorithm(n):
+    # Ensure n is not a prime number or a power of a prime
+    if is_prime(n) or math.log(n, 2).is_integer():
+        return None  # No factors found
+
+    # Retry with different random values of 'a'
+    for _ in range(10):  # Limit to 10 attempts
+        a = random.randint(2, n - 1)  # Pick a random 'a' value
+        print(f"Trying a = {a}")  # Debugging line to observe chosen 'a'
+
+        # Compute the GCD of 'a' and 'n'
+        g = gcd(a, n)
+        if g > 1 and g < n:
+            if is_prime(g) and is_prime(n // g):
+                return g, n // g
+
+        # Try to find factors using g^(r/2) ± 1
+        result = factor_with_r(a, n)
+        if result:
+            return result
+
+    return None
+
+while True:
+
+    if __name__ == "__main__":
+        number = int(input("Enter a number to factorize: "))
+        result = shors_algorithm(number)
+        if result:
+            print(result)  # Output the pair of prime factors
+        else:
+            print("No prime factors found.")
